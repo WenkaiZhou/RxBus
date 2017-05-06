@@ -24,7 +24,8 @@ import io.reactivex.schedulers.Schedulers;
  * 2017-05-06 11:27:43
  */
 
-public enum SchedulerType {
+public enum ThreadMode {
+
     SINGLE(Schedulers.single()),
     COMPUTATION(Schedulers.computation()),
     IO(Schedulers.io()),
@@ -34,7 +35,11 @@ public enum SchedulerType {
 
     private Scheduler scheduler;
 
-    private SchedulerType(Scheduler scheduler) {
+    private ThreadMode(Scheduler scheduler) {
         this.scheduler = scheduler;
+    }
+
+    public Scheduler getScheduler() {
+        return scheduler;
     }
 }

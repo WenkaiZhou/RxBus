@@ -97,63 +97,16 @@ public class RxBus {
     }
 
     public void post(Object obj) {
-        pust(obj, 0);
+        post(obj, 0);
     }
 
-    public void pust(Object obj, int tag) {
+    public void post(Object obj, int tag) {
         subject.onNext(new ObserverObject(obj, tag));
     }
 
-    public <T> Disposable subscribe(@NonNull final Consumer<T> onNext) {
+    public <T> Disposable subscribe(@NonNull final Consumer<T> onNext,
+                                    @NonNull final Scheduler scheduler) {
 
-        ObjectHelper.requireNonNull(onNext, "onNext is null");
-
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        return o instanceof ObserverObject;
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
-                .subscribe(onNext);
-
-    }
-
-    public <T> Disposable subscribe(@NonNull final Predicate<T> filter,
-                                    @NonNull final Consumer<T> onNext) {
-
-        ObjectHelper.requireNonNull(filter, "filter is null");
-        ObjectHelper.requireNonNull(onNext, "onNext is null");
-
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        return o instanceof ObserverObject;
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
-                .filter(filter)
-                .subscribe(onNext);
-
-    }
-
-    public <T> Disposable subscribe(@NonNull final Predicate<T> filter,
-                                    @NonNull final Consumer<T> onNext,
-                                    @NonNull Scheduler scheduler) {
-
-        ObjectHelper.requireNonNull(filter, "filter is null");
         ObjectHelper.requireNonNull(onNext, "onNext is null");
         ObjectHelper.requireNonNull(scheduler, "scheduler is null");
 
@@ -170,13 +123,68 @@ public class RxBus {
                         return ((ObserverObject<T>) o).obj;
                     }
                 })
-                .filter(filter)
                 .observeOn(scheduler)
                 .subscribe(onNext);
 
     }
 
-    public <T> Disposable subscribe(@NonNull final Predicate<T> filter,
+    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
+                                    @NonNull final Consumer<T> onNext) {
+
+        ObjectHelper.requireNonNull(filter, "filter is null");
+        ObjectHelper.requireNonNull(onNext, "onNext is null");
+
+        return subject
+                .filter(new Predicate<Object>() {
+                    @Override
+                    public boolean test(@NonNull Object o) throws Exception {
+                        if (!(o instanceof ObserverObject)) {
+                            return false;
+                        }
+
+                        return filter.test((ObserverObject<T>) o);
+                    }
+                })
+                .map(new Function<Object, T>() {
+                    @Override
+                    public T apply(@NonNull Object o) throws Exception {
+                        return ((ObserverObject<T>) o).obj;
+                    }
+                })
+                .subscribe(onNext);
+    }
+
+    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
+                                    @NonNull final Consumer<T> onNext,
+                                    @NonNull final Scheduler scheduler) {
+
+        ObjectHelper.requireNonNull(filter, "filter is null");
+        ObjectHelper.requireNonNull(onNext, "onNext is null");
+        ObjectHelper.requireNonNull(scheduler, "scheduler is null");
+
+        return subject
+                .filter(new Predicate<Object>() {
+                    @Override
+                    public boolean test(@NonNull Object o) throws Exception {
+                        if (!(o instanceof ObserverObject)) {
+                            return false;
+                        }
+
+                        return filter.test((ObserverObject<T>) o);
+                    }
+                })
+                .map(new Function<Object, T>() {
+                    @Override
+                    public T apply(@NonNull Object o) throws Exception {
+                        return ((ObserverObject<T>) o).obj;
+                    }
+                })
+                .observeOn(scheduler)
+                .subscribe(onNext);
+
+    }
+
+    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
                                     @NonNull final Consumer<T> onNext,
                                     @NonNull Scheduler scheduler,
                                     @NonNull final Consumer<Throwable> onError) {
@@ -190,7 +198,11 @@ public class RxBus {
                 .filter(new Predicate<Object>() {
                     @Override
                     public boolean test(@NonNull Object o) throws Exception {
-                        return o instanceof ObserverObject;
+                        if (!(o instanceof ObserverObject)) {
+                            return false;
+                        }
+
+                        return filter.test((ObserverObject<T>) o);
                     }
                 })
                 .map(new Function<Object, T>() {
@@ -199,13 +211,12 @@ public class RxBus {
                         return ((ObserverObject<T>) o).obj;
                     }
                 })
-                .filter(filter)
                 .observeOn(scheduler)
                 .subscribe(onNext, onError);
 
     }
 
-    public <T> Disposable subscribe(@NonNull final Predicate<T> filter,
+    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
                                     @NonNull final Consumer<T> onNext,
                                     @NonNull Scheduler scheduler,
                                     @NonNull final Consumer<Throwable> onError,
@@ -221,108 +232,6 @@ public class RxBus {
                 .filter(new Predicate<Object>() {
                     @Override
                     public boolean test(@NonNull Object o) throws Exception {
-                        return o instanceof ObserverObject;
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
-                .filter(filter)
-                .observeOn(scheduler)
-                .subscribe(onNext, onError, onComplete);
-
-    }
-
-
-    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
-                                    @NonNull final Consumer<T> onNext) {
-
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        if (!(o instanceof ObserverObject)) {
-                            return false;
-                        }
-
-                        return filter.test((ObserverObject<T>) o);
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
-                .subscribe(onNext);
-    }
-
-    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
-                                    @NonNull final Consumer<T> onNext,
-                                    final Scheduler scheduler) {
-
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        if (!(o instanceof ObserverObject)) {
-                            return false;
-                        }
-
-                        return filter.test((ObserverObject<T>) o);
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
-                .observeOn(scheduler)
-                .subscribe(onNext);
-
-    }
-
-    public <T> Disposable subscribe(@Nullable final Predicate<ObserverObject<T>> filter,
-                                    @NonNull final Consumer<T> onNext,
-                                    @Nullable Scheduler scheduler,
-                                    @Nullable final Consumer<Throwable> onError) {
-
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        if (!(o instanceof ObserverObject)) {
-                            return false;
-                        }
-
-                        return filter.test((ObserverObject<T>) o);
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
-                .observeOn(scheduler)
-                .subscribe(onNext, onError);
-
-    }
-
-    public <T> Disposable subscribe(@Nullable final Predicate<ObserverObject<T>> filter,
-                                    @NonNull final Consumer<T> onNext,
-                                    @Nullable Scheduler scheduler,
-                                    @Nullable final Consumer<Throwable> onError,
-                                    @Nullable final Action onComplete) {
-
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
                         if (!(o instanceof ObserverObject)) {
                             return false;
                         }
@@ -341,7 +250,7 @@ public class RxBus {
 
     }
 
-    private static final class ObserverObject<T> {
+    public static final class ObserverObject<T> {
 
         public T obj;
         public int tag;
