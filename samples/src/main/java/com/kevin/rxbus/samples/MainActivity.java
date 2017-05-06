@@ -1,4 +1,4 @@
-package com.kevin.rxbus;
+package com.kevin.rxbus.samples;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
