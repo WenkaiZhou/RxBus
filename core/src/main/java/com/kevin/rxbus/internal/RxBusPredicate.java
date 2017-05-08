@@ -13,27 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.kevin.rxbus;
+package com.kevin.rxbus.internal;
+
+import io.reactivex.functions.Predicate;
 
 /**
- * An {@link RuntimeException} thrown in cases something went wrong inside RxBus.
- *
- * @author zwenkai on 2017-05-06 15:51:47
- *
+ * Created by zhouwenkai on 2017/5/8.
  */
 
-public class RxBusException extends RuntimeException {
-
-    public RxBusException(String detailMessage) {
-        super(detailMessage);
-    }
-
-    public RxBusException(Throwable throwable) {
-        super(throwable);
-    }
-
-    public RxBusException(String detailMessage, Throwable throwable) {
-        super(detailMessage, throwable);
-    }
+public abstract class RxBusPredicate<T> extends ParameterType<T> implements Predicate<T> {
 
 }

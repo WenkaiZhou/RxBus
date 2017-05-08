@@ -15,25 +15,22 @@
  */
 package com.kevin.rxbus;
 
+import com.kevin.rxbus.internal.RxBusConsumer;
+import com.kevin.rxbus.internal.RxBusPredicate;
+
 import io.reactivex.Scheduler;
 import io.reactivex.annotations.NonNull;
-import io.reactivex.annotations.Nullable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
-import io.reactivex.functions.Function;
-import io.reactivex.functions.Predicate;
 import io.reactivex.internal.functions.ObjectHelper;
-import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.Subject;
-
-import static android.R.attr.filter;
 
 /**
  * Created by zwenkai on 2017/5/6.
  */
 
-public class RxBus {
+public class RxBus<T> {
 
     public static final String TAG = "RxBus";
 
@@ -97,130 +94,89 @@ public class RxBus {
     }
 
     public void post(Object obj) {
-        post(obj, 0);
+        subject.onNext(obj);
     }
 
-    public void post(Object obj, int tag) {
-        subject.onNext(new ObserverObject(obj, tag));
-    }
-
-    public <T> Disposable subscribe(@NonNull final Consumer<T> onNext,
-                                    @NonNull final Scheduler scheduler) {
+    public Disposable subscribe(@NonNull final RxBusConsumer<T> onNext,
+                                @NonNull final Scheduler scheduler) {
 
         ObjectHelper.requireNonNull(onNext, "onNext is null");
         ObjectHelper.requireNonNull(scheduler, "scheduler is null");
 
         return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        return o instanceof ObserverObject;
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
+                .ofType(onNext.getType())
                 .observeOn(scheduler)
                 .subscribe(onNext);
 
     }
 
-    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
-                                    @NonNull final Consumer<T> onNext) {
+    public Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
+                                @NonNull final RxBusConsumer<T> onNext) {
 
         ObjectHelper.requireNonNull(filter, "filter is null");
         ObjectHelper.requireNonNull(onNext, "onNext is null");
 
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        if (!(o instanceof ObserverObject)) {
-                            return false;
-                        }
+        if (!ObjectHelper.equals(filter.getType(), onNext.getType())) {
+            throw new RxBusException(
+                    String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>",
+                            filter.getType().getName(), onNext.getType().getName()));
+        }
 
-                        return filter.test((ObserverObject<T>) o);
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
+        return subject
+                .ofType(onNext.getType())
+                .filter(filter)
                 .subscribe(onNext);
     }
 
-    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
-                                    @NonNull final Consumer<T> onNext,
-                                    @NonNull final Scheduler scheduler) {
+    public Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
+                                @NonNull final RxBusConsumer<T> onNext,
+                                @NonNull final Scheduler scheduler) {
 
         ObjectHelper.requireNonNull(filter, "filter is null");
         ObjectHelper.requireNonNull(onNext, "onNext is null");
         ObjectHelper.requireNonNull(scheduler, "scheduler is null");
 
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        if (!(o instanceof ObserverObject)) {
-                            return false;
-                        }
+        if (!ObjectHelper.equals(filter.getType(), onNext.getType())) {
+            throw new RxBusException(
+                    String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>",
+                            filter.getType().getName(), onNext.getType().getName()));
+        }
 
-                        return filter.test((ObserverObject<T>) o);
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
+        return subject
+                .ofType(onNext.getType())
                 .observeOn(scheduler)
                 .subscribe(onNext);
 
     }
 
-    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
-                                    @NonNull final Consumer<T> onNext,
-                                    @NonNull Scheduler scheduler,
-                                    @NonNull final Consumer<Throwable> onError) {
+    public Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
+                                @NonNull final RxBusConsumer<T> onNext,
+                                @NonNull Scheduler scheduler,
+                                @NonNull final Consumer<Throwable> onError) {
 
         ObjectHelper.requireNonNull(filter, "filter is null");
         ObjectHelper.requireNonNull(onNext, "onNext is null");
         ObjectHelper.requireNonNull(scheduler, "scheduler is null");
         ObjectHelper.requireNonNull(onError, "onError is null");
 
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        if (!(o instanceof ObserverObject)) {
-                            return false;
-                        }
+        if (!ObjectHelper.equals(filter.getType(), onNext.getType())) {
+            throw new RxBusException(
+                    String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>",
+                            filter.getType().getName(), onNext.getType().getName()));
+        }
 
-                        return filter.test((ObserverObject<T>) o);
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
+        return subject
+                .ofType(onNext.getType())
                 .observeOn(scheduler)
                 .subscribe(onNext, onError);
 
     }
 
-    public <T> Disposable subscribe(@NonNull final Predicate<ObserverObject<T>> filter,
-                                    @NonNull final Consumer<T> onNext,
-                                    @NonNull Scheduler scheduler,
-                                    @NonNull final Consumer<Throwable> onError,
-                                    @NonNull final Action onComplete) {
+    public Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
+                                @NonNull final RxBusConsumer<T> onNext,
+                                @NonNull Scheduler scheduler,
+                                @NonNull final Consumer<Throwable> onError,
+                                @NonNull final Action onComplete) {
 
         ObjectHelper.requireNonNull(filter, "filter is null");
         ObjectHelper.requireNonNull(onNext, "onNext is null");
@@ -228,38 +184,18 @@ public class RxBus {
         ObjectHelper.requireNonNull(onError, "onError is null");
         ObjectHelper.requireNonNull(onComplete, "onComplete is null");
 
-        return subject
-                .filter(new Predicate<Object>() {
-                    @Override
-                    public boolean test(@NonNull Object o) throws Exception {
-                        if (!(o instanceof ObserverObject)) {
-                            return false;
-                        }
+        if (!ObjectHelper.equals(filter.getType(), onNext.getType())) {
+            throw new RxBusException(
+                    String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>",
+                            filter.getType().getName(), onNext.getType().getName()));
+        }
 
-                        return filter.test((ObserverObject<T>) o);
-                    }
-                })
-                .map(new Function<Object, T>() {
-                    @Override
-                    public T apply(@NonNull Object o) throws Exception {
-                        return ((ObserverObject<T>) o).obj;
-                    }
-                })
+        return subject
+                .ofType(onNext.getType())
                 .observeOn(scheduler)
                 .subscribe(onNext, onError, onComplete);
 
     }
 
-    public static final class ObserverObject<T> {
-
-        public T obj;
-        public int tag;
-
-        public ObserverObject(T obj, int tag) {
-            this.obj = obj;
-            this.tag = tag;
-        }
-
-    }
 
 }

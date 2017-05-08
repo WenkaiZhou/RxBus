@@ -1,17 +1,18 @@
 package com.kevin.rxbus.samples;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import com.kevin.rxbus.RxBus;
+import com.kevin.rxbus.internal.RxBusConsumer;
+import com.kevin.rxbus.internal.RxBusPredicate;
 
 import io.reactivex.annotations.NonNull;
-import io.reactivex.functions.Consumer;
-import io.reactivex.functions.Predicate;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                RxBus.getDefault().post(s.toString(), 666);
+                RxBus.getDefault().post(Integer.parseInt(s.toString()));
             }
 
             @Override
@@ -40,17 +41,31 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        RxBus.getDefault().subscribe(
+                new RxBusPredicate<String>() {
+                    @Override
+                    public boolean test(@NonNull String s) throws Exception {
+                        return true;
+                    }
+                }, new RxBusConsumer<String>() {
+                    @Override
+                    public void accept(@NonNull String s) throws Exception {
+                        textView.setText(s);
+                    }
+                });
 
-        RxBus.getDefault().subscribe(new Predicate<RxBus.ObserverObject<String>>() {
-            @Override
-            public boolean test(@NonNull RxBus.ObserverObject<String> observerObj) throws Exception {
-                return observerObj.tag == 666;
-            }
-        }, new Consumer<String>() {
-            @Override
-            public void accept(@NonNull String s) throws Exception {
-                textView.setText(s);
-            }
-        });
+        RxBus.getDefault().subscribe(
+                new RxBusPredicate<Integer>() {
+                    @Override
+                    public boolean test(@NonNull Integer o) throws Exception {
+                        return true;
+                    }
+                }, new RxBusConsumer<Integer>() {
+
+                    @Override
+                    public void accept(@NonNull Integer integer) throws Exception {
+                        Log.d("aaaa", "integer = " + integer);
+                    }
+                });
     }
 }
