@@ -18,11 +18,16 @@ package com.kevin.rxbus;
 import com.kevin.rxbus.internal.RxBusConsumer;
 import com.kevin.rxbus.internal.RxBusPredicate;
 
+import java.util.Map;
+
+import io.reactivex.Observable;
+import io.reactivex.Observer;
 import io.reactivex.Scheduler;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Predicate;
 import io.reactivex.internal.functions.ObjectHelper;
 import io.reactivex.subjects.Subject;
 
@@ -30,13 +35,14 @@ import io.reactivex.subjects.Subject;
  * Created by zwenkai on 2017/5/6.
  */
 
-public class RxBus<T> {
+public class RxBus {
 
     public static final String TAG = "RxBus";
 
     private static final RxBusBuilder DEFAULT_BUILDER = new RxBusBuilder();
 
-    private final Subject<Object> subject;
+    private final Subject<Object> mSubject;
+    private final Map<Class<?>, Object> mStickyMap;
 
     private final boolean throwSubscriberException;
     private final boolean logSubscriberExceptions;
@@ -66,7 +72,8 @@ public class RxBus<T> {
     }
 
     RxBus(RxBusBuilder builder) {
-        subject = builder.subject;
+        mSubject = builder.subject;
+        mStickyMap = builder.mStickyMap;
         logSubscriberExceptions = builder.logSubscriberExceptions;
         logNoSubscriberMessages = builder.logNoSubscriberMessages;
         sendSubscriberExceptionEvent = builder.sendSubscriberExceptionEvent;
@@ -94,89 +101,37 @@ public class RxBus<T> {
     }
 
     public void post(Object obj) {
-        subject.onNext(obj);
+        mSubject.onNext(obj);
     }
 
-    public Disposable subscribe(@NonNull final RxBusConsumer<T> onNext,
-                                @NonNull final Scheduler scheduler) {
+    public void postSticky(Object obj) {
+        synchronized (mStickyMap) {
+            mStickyMap.put(obj.getClass(), obj);
+        }
+        mSubject.onNext(obj);
+    }
+
+    public <T> Disposable subscribe(@NonNull final RxBusConsumer<T> onNext) {
 
         ObjectHelper.requireNonNull(onNext, "onNext is null");
-        ObjectHelper.requireNonNull(scheduler, "scheduler is null");
 
-        return subject
-                .ofType(onNext.getType())
-                .observeOn(scheduler)
-                .subscribe(onNext);
-
+        return doSubscribe(null, onNext, null, null, null);
     }
 
-    public Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
-                                @NonNull final RxBusConsumer<T> onNext) {
+    public <T> Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
+                                    @NonNull final RxBusConsumer<T> onNext) {
 
         ObjectHelper.requireNonNull(filter, "filter is null");
         ObjectHelper.requireNonNull(onNext, "onNext is null");
 
-        if (!ObjectHelper.equals(filter.getType(), onNext.getType())) {
-            throw new RxBusException(
-                    String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>",
-                            filter.getType().getName(), onNext.getType().getName()));
-        }
-
-        return subject
-                .ofType(onNext.getType())
-                .filter(filter)
-                .subscribe(onNext);
+        return doSubscribe(filter, onNext, null, null, null);
     }
 
-    public Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
-                                @NonNull final RxBusConsumer<T> onNext,
-                                @NonNull final Scheduler scheduler) {
-
-        ObjectHelper.requireNonNull(filter, "filter is null");
-        ObjectHelper.requireNonNull(onNext, "onNext is null");
-        ObjectHelper.requireNonNull(scheduler, "scheduler is null");
-
-        if (!ObjectHelper.equals(filter.getType(), onNext.getType())) {
-            throw new RxBusException(
-                    String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>",
-                            filter.getType().getName(), onNext.getType().getName()));
-        }
-
-        return subject
-                .ofType(onNext.getType())
-                .observeOn(scheduler)
-                .subscribe(onNext);
-
-    }
-
-    public Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
-                                @NonNull final RxBusConsumer<T> onNext,
-                                @NonNull Scheduler scheduler,
-                                @NonNull final Consumer<Throwable> onError) {
-
-        ObjectHelper.requireNonNull(filter, "filter is null");
-        ObjectHelper.requireNonNull(onNext, "onNext is null");
-        ObjectHelper.requireNonNull(scheduler, "scheduler is null");
-        ObjectHelper.requireNonNull(onError, "onError is null");
-
-        if (!ObjectHelper.equals(filter.getType(), onNext.getType())) {
-            throw new RxBusException(
-                    String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>",
-                            filter.getType().getName(), onNext.getType().getName()));
-        }
-
-        return subject
-                .ofType(onNext.getType())
-                .observeOn(scheduler)
-                .subscribe(onNext, onError);
-
-    }
-
-    public Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
-                                @NonNull final RxBusConsumer<T> onNext,
-                                @NonNull Scheduler scheduler,
-                                @NonNull final Consumer<Throwable> onError,
-                                @NonNull final Action onComplete) {
+    public <T> Disposable subscribe(@NonNull final RxBusPredicate<T> filter,
+                                    @NonNull final RxBusConsumer<T> onNext,
+                                    @NonNull final Scheduler scheduler,
+                                    @NonNull final Consumer<Throwable> onError,
+                                    @NonNull final Action onComplete) {
 
         ObjectHelper.requireNonNull(filter, "filter is null");
         ObjectHelper.requireNonNull(onNext, "onNext is null");
@@ -184,17 +139,130 @@ public class RxBus<T> {
         ObjectHelper.requireNonNull(onError, "onError is null");
         ObjectHelper.requireNonNull(onComplete, "onComplete is null");
 
-        if (!ObjectHelper.equals(filter.getType(), onNext.getType())) {
+        return doSubscribe(filter, onNext, scheduler, onError, onComplete);
+
+    }
+
+    private <T> Disposable doSubscribe(final RxBusPredicate<T> filter,
+                                       final RxBusConsumer<T> onNext,
+                                       Scheduler scheduler,
+                                       final Consumer<Throwable> onError,
+                                       final Action onComplete) {
+
+        if (null != filter && null != onNext && !ObjectHelper.equals(filter.getType(), onNext.getType())) {
             throw new RxBusException(
-                    String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>",
+                    String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>.",
                             filter.getType().getName(), onNext.getType().getName()));
         }
 
-        return subject
-                .ofType(onNext.getType())
-                .observeOn(scheduler)
-                .subscribe(onNext, onError, onComplete);
+        Observable<T> observable = mSubject.ofType(onNext.getType());
+        if (null != filter) {
+            observable.filter(filter);
+        }
+        if (null != scheduler) {
+            observable.observeOn(scheduler);
+        }
+        if (null != onError && null != onComplete) {
+            return observable.subscribe(onNext, onError, onComplete);
+        } else {
+            return observable.subscribe(onNext);
+        }
 
+    }
+
+    // ------------------- Sticky Subscribe -----------------------
+
+    public <T> Disposable subscribeSticky(@NonNull final RxBusConsumer<T> onNext) {
+
+        ObjectHelper.requireNonNull(onNext, "onNext is null");
+
+        return doSubscribeSticky(null, onNext, null, null, null);
+    }
+
+    public <T> Disposable subscribeSticky(@NonNull final RxBusPredicate<T> filter,
+                                          @NonNull final RxBusConsumer<T> onNext) {
+
+        ObjectHelper.requireNonNull(filter, "filter is null");
+        ObjectHelper.requireNonNull(onNext, "onNext is null");
+
+        return doSubscribeSticky(filter, onNext, null, null, null);
+    }
+
+    public <T> Disposable subscribeSticky(@NonNull final RxBusPredicate<T> filter,
+                                          @NonNull final RxBusConsumer<T> onNext,
+                                          @NonNull final Scheduler scheduler,
+                                          @NonNull final Consumer<Throwable> onError,
+                                          @NonNull final Action onComplete) {
+
+        ObjectHelper.requireNonNull(filter, "filter is null");
+        ObjectHelper.requireNonNull(onNext, "onNext is null");
+        ObjectHelper.requireNonNull(scheduler, "scheduler is null");
+        ObjectHelper.requireNonNull(onError, "onError is null");
+        ObjectHelper.requireNonNull(onComplete, "onComplete is null");
+
+        return doSubscribeSticky(filter, onNext, scheduler, onError, onComplete);
+    }
+
+    private <T> Disposable doSubscribeSticky(final RxBusPredicate<T> filter,
+                                             final RxBusConsumer<T> onNext,
+                                             final Scheduler scheduler,
+                                             final Consumer<Throwable> onError,
+                                             final Action onComplete) {
+
+        synchronized (mStickyMap) {
+
+            if (null != filter && null != onNext && !ObjectHelper.equals(filter.getType(), onNext.getType())) {
+                throw new RxBusException(
+                        String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>.",
+                                filter.getType().getName(), onNext.getType().getName()));
+            }
+
+            Observable<T> observable = mSubject
+                    .ofType(onNext.getType())
+                    .filter(new Predicate<T>() {
+                        @Override
+                        public boolean test(@NonNull T t) throws Exception {
+                            return null != mStickyMap.get(onNext.getType());
+                        }
+                    });
+            if (null != filter) {
+                observable.filter(filter);
+            }
+            observable.mergeWith(new Observable<T>() {
+                @Override
+                protected void subscribeActual(Observer<? super T> observer) {
+                    observer.onNext(onNext.getType().cast(mStickyMap.get(onNext.getType())));
+                }
+            });
+            if (null != scheduler) {
+                observable.observeOn(scheduler);
+            }
+            if (null != onError && null != onComplete) {
+                return observable.subscribe(onNext, onError, onComplete);
+            } else {
+                return observable.subscribe(onNext);
+            }
+        }
+
+    }
+
+    public boolean removeSticky(Object event) {
+        synchronized (mStickyMap) {
+            Class<?> eventType = event.getClass();
+            Object existingEvent = mStickyMap.get(eventType);
+            if (event.equals(existingEvent)) {
+                mStickyMap.remove(eventType);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    public void removeAllSticky() {
+        synchronized (mStickyMap) {
+            mStickyMap.clear();
+        }
     }
 
 

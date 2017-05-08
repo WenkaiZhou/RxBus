@@ -15,6 +15,8 @@
  */
 package com.kevin.rxbus;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
@@ -27,6 +29,7 @@ import io.reactivex.subjects.Subject;
 public class RxBusBuilder {
 
     final Subject<Object> subject;
+    final Map<Class<?>, Object> mStickyMap;
 
     boolean logSubscriberExceptions = true;
     boolean logNoSubscriberMessages = true;
@@ -36,6 +39,7 @@ public class RxBusBuilder {
 
     RxBusBuilder() {
         subject = PublishSubject.create().toSerialized();
+        mStickyMap = new ConcurrentHashMap<>();
     }
 
     /** Default: true */
