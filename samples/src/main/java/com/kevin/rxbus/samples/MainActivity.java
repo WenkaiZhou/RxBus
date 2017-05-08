@@ -50,7 +50,8 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                RxBus.getDefault().postSticky(new User("zwenkai", "male", "zwenkai@foxmail.com"));
+//                RxBus.getDefault().postSticky("zwenkai@foxmail.com");
+                RxBus.getDefault().postSticky(new User("zwenkai1", "male", "zwenkai@foxmail.com"));
                 startActivity(new Intent(MainActivity.this, SecondActivity.class));
             }
         });

@@ -49,12 +49,6 @@ public class SecondActivity extends AppCompatActivity {
         );
 
         RxBus.getDefault().subscribeSticky(
-                new RxBusPredicate<User>() {
-                    @Override
-                    public boolean test(@NonNull User user) throws Exception {
-                        return user.name.equals("zwenkai");
-                    }
-                },
                 new RxBusConsumer<User>() {
 
                     @Override
@@ -69,6 +63,6 @@ public class SecondActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        RxBus.getDefault().removeSticky(User.class);
+//        RxBus.getDefault().removeSticky(User.class);
     }
 }
