@@ -35,15 +35,15 @@ public class SecondActivity extends AppCompatActivity {
                 new RxBusPredicate<User>() {
                     @Override
                     public boolean test(@NonNull User user) throws Exception {
-                        return user.name.equals("zwenkai");
+                        return user.name.equals("Kevin");
                     }
                 },
                 new RxBusConsumer<User>() {
 
                     @Override
                     public void accept(@NonNull User user) throws Exception {
-                        textView1.setText(String.format("name: %1$s, gender: %2$s, email: %3$s.",
-                                user.name, user.gender, user.email));
+                        textView1.setText(String.format("name: %1$s, gender: %2$d, email: %3$s.",
+                                user.name, user.age, user.email));
                     }
                 }
         );
@@ -53,8 +53,8 @@ public class SecondActivity extends AppCompatActivity {
 
                     @Override
                     public void accept(@NonNull User user) throws Exception {
-                        textView2.setText(String.format("name: %1$s, gender: %2$s, email: %3$s.",
-                                user.name, user.gender, user.email));
+                        textView2.setText(String.format("name: %1$s, gender: %2$d, email: %3$s.",
+                                user.name, user.age, user.email));
                     }
                 }
         );
@@ -63,6 +63,6 @@ public class SecondActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-//        RxBus.getDefault().removeSticky(User.class);
+        RxBus.getDefault().removeSticky(User.class);
     }
 }

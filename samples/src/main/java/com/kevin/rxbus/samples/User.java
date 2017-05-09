@@ -7,12 +7,12 @@ package com.kevin.rxbus.samples;
 public class User {
 
     public String name;
-    public String gender;
+    public int age;
     public String email;
 
-    public User(String name, String gender, String email) {
+    public User(String name, int age, String email) {
         this.name = name;
-        this.gender = gender;
+        this.age = age;
         this.email = email;
     }
 }
