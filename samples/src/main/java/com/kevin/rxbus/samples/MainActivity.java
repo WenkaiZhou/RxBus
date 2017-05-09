@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.View;
@@ -15,7 +16,9 @@ import com.kevin.rxbus.RxBus;
 import com.kevin.rxbus.internal.RxBusConsumer;
 import com.kevin.rxbus.internal.RxBusPredicate;
 
+import io.reactivex.Observable;
 import io.reactivex.annotations.NonNull;
+import io.reactivex.disposables.CompositeDisposable;
 
 public class MainActivity extends AppCompatActivity implements TextWatcher, View.OnClickListener {
 
@@ -25,13 +28,15 @@ public class MainActivity extends AppCompatActivity implements TextWatcher, View
     EditText etName;
     EditText etAge;
     EditText etEmail;
-    TextView tvShow;
+    TextView tvShow1;
+    TextView tvShow2;
     Button btSendSticky;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        new CompositeDisposable();
 
         tvName = (TextView) this.findViewById(R.id.tv_name);
         tvAge = (TextView) this.findViewById(R.id.tv_age);
@@ -39,8 +44,11 @@ public class MainActivity extends AppCompatActivity implements TextWatcher, View
         etName = (EditText) this.findViewById(R.id.et_name);
         etAge = (EditText) this.findViewById(R.id.et_age);
         etEmail = (EditText) this.findViewById(R.id.et_email);
-        tvShow = (TextView) this.findViewById(R.id.tv_show);
+        tvShow1 = (TextView) this.findViewById(R.id.tv_show1);
+        tvShow2 = (TextView) this.findViewById(R.id.tv_show2);
         btSendSticky = (Button) this.findViewById(R.id.bt_send_sticky);
+        InputFilter[] filters = {new InputFilter.LengthFilter(3)};
+        etAge.setFilters(filters);
 
         etName.addTextChangedListener(this);
         etAge.addTextChangedListener(this);
@@ -53,22 +61,31 @@ public class MainActivity extends AppCompatActivity implements TextWatcher, View
         super.onResume();
 
         RxBus.getDefault().subscribe(
+                new RxBusConsumer<User>() {
+                    @Override
+                    public void accept(@NonNull User user) throws Exception {
+                        tvShow1.setText(String.format("name: %1$s, gender: %2$d, email: %3$s.",
+                                user.name, user.age, user.email));
+                    }
+                });
+
+        RxBus.getDefault().subscribe(
                 new RxBusPredicate<User>() {
                     @Override
                     public boolean test(@NonNull User user) throws Exception {
-                        tvShow.setText("");
-                        // Display the information only when all is not empty.
+                        tvShow2.setText("");
+                        // Display the information only name and mailbox are not empty.
                         return !TextUtils.isEmpty(user.name)
-                                && user.age != 0
                                 && !TextUtils.isEmpty(user.email);
                     }
                 }, new RxBusConsumer<User>() {
                     @Override
                     public void accept(@NonNull User user) throws Exception {
-                        tvShow.setText(String.format("name: %1$s, gender: %2$d, email: %3$s.",
+                        tvShow2.setText(String.format("name: %1$s, gender: %2$d, email: %3$s.",
                                 user.name, user.age, user.email));
                     }
                 });
+
     }
 
     @Override

@@ -44,6 +44,7 @@
         android:layout_marginLeft="8dp"
         android:layout_marginTop="8dp"
         android:inputType="numberDecimal"
+
         android:maxLines="1"
         app:layout_constraintBottom_toBottomOf="@id/tv_age"
         app:layout_constraintLeft_toRightOf="@id/tv_name"
@@ -73,13 +74,42 @@
         app:layout_constraintTop_toTopOf="@id/tv_email" />
 
     <TextView
-        android:id="@+id/tv_show"
+        android:id="@+id/tv_show1_desc"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="40dp"
+        android:text="Receive all: "
+        android:textColor="@color/colorPrimary"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/et_email" />
+
+    <TextView
+        android:id="@+id/tv_show1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/et_email" />
+        app:layout_constraintTop_toBottomOf="@id/tv_show1_desc" />
+
+    <TextView
+        android:id="@+id/tv_show2_desc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Receive name and mailbox are not empty: "
+        android:textColor="@color/colorAccent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_show1" />
+
+    <TextView
+        android:id="@+id/tv_show2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_show2_desc" />
 
     <Button
         android:id="@+id/bt_send_sticky"
