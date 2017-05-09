@@ -111,6 +111,14 @@ public class RxBus {
         mSubject.onNext(obj);
     }
 
+    public <T> Disposable subscribe(@NonNull final RxBusConsumer<T> onNext) {
+
+        ObjectHelper.requireNonNull(onNext, "onNext is null");
+
+        return doSubscribe(null, onNext, null, null, null);
+
+    }
+
     public <T> Disposable subscribe(@NonNull final RxBusConsumer<T> onNext,
                                     @NonNull final Scheduler scheduler) {
 
@@ -189,11 +197,16 @@ public class RxBus {
 
     public <T> Disposable subscribeSticky(@NonNull final RxBusConsumer<T> onNext) {
 
+        ObjectHelper.requireNonNull(onNext, "onNext is null");
+
         return doSubscribeSticky(null, onNext, null, null, null);
     }
 
     public <T> Disposable subscribeSticky(@NonNull final RxBusPredicate<T> filter,
                                           @NonNull final RxBusConsumer<T> onNext) {
+
+        ObjectHelper.requireNonNull(filter, "filter is null");
+        ObjectHelper.requireNonNull(onNext, "onNext is null");
 
         return doSubscribeSticky(filter, onNext, null, null, null);
     }

@@ -10,6 +10,8 @@ import com.kevin.rxbus.internal.RxBusConsumer;
 import com.kevin.rxbus.internal.RxBusPredicate;
 
 import io.reactivex.annotations.NonNull;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
 
 /**
  * Created by zhouwenkai on 2017/5/8.
@@ -19,10 +21,15 @@ public class SecondActivity extends AppCompatActivity {
     TextView textView1;
     TextView textView2;
 
+    CompositeDisposable compositeDisposable;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_second);
+
+        compositeDisposable = new CompositeDisposable();
+
         textView1 = (TextView) this.findViewById(R.id.tv1);
         textView2 = (TextView) this.findViewById(R.id.tv2);
     }
@@ -31,7 +38,7 @@ public class SecondActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        RxBus.getDefault().subscribeSticky(
+        Disposable disposable1 = RxBus.getDefault().subscribeSticky(
                 new RxBusPredicate<User>() {
                     @Override
                     public boolean test(@NonNull User user) throws Exception {
@@ -48,7 +55,7 @@ public class SecondActivity extends AppCompatActivity {
                 }
         );
 
-        RxBus.getDefault().subscribeSticky(
+        Disposable disposable2 = RxBus.getDefault().subscribeSticky(
                 new RxBusConsumer<User>() {
 
                     @Override
@@ -58,11 +65,15 @@ public class SecondActivity extends AppCompatActivity {
                     }
                 }
         );
+
+        compositeDisposable.add(disposable1);
+        compositeDisposable.add(disposable2);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        compositeDisposable.clear();
         RxBus.getDefault().removeSticky(User.class);
     }
 }

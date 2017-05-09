@@ -16,9 +16,9 @@ import com.kevin.rxbus.RxBus;
 import com.kevin.rxbus.internal.RxBusConsumer;
 import com.kevin.rxbus.internal.RxBusPredicate;
 
-import io.reactivex.Observable;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
 
 public class MainActivity extends AppCompatActivity implements TextWatcher, View.OnClickListener {
 
@@ -32,11 +32,13 @@ public class MainActivity extends AppCompatActivity implements TextWatcher, View
     TextView tvShow2;
     Button btSendSticky;
 
+    CompositeDisposable compositeDisposable;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        new CompositeDisposable();
+        compositeDisposable = new CompositeDisposable();
 
         tvName = (TextView) this.findViewById(R.id.tv_name);
         tvAge = (TextView) this.findViewById(R.id.tv_age);
@@ -60,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements TextWatcher, View
     protected void onResume() {
         super.onResume();
 
-        RxBus.getDefault().subscribe(
+        Disposable disposable1 = RxBus.getDefault().subscribe(
                 new RxBusConsumer<User>() {
                     @Override
                     public void accept(@NonNull User user) throws Exception {
@@ -69,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements TextWatcher, View
                     }
                 });
 
-        RxBus.getDefault().subscribe(
+        Disposable disposable2 = RxBus.getDefault().subscribe(
                 new RxBusPredicate<User>() {
                     @Override
                     public boolean test(@NonNull User user) throws Exception {
@@ -86,6 +88,8 @@ public class MainActivity extends AppCompatActivity implements TextWatcher, View
                     }
                 });
 
+        compositeDisposable.add(disposable1);
+        compositeDisposable.add(disposable2);
     }
 
     @Override
@@ -123,5 +127,11 @@ public class MainActivity extends AppCompatActivity implements TextWatcher, View
         // Send Sticky
         RxBus.getDefault().postSticky(new User(name, age, email));
         startActivity(new Intent(MainActivity.this, SecondActivity.class));
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        compositeDisposable.clear();
     }
 }
