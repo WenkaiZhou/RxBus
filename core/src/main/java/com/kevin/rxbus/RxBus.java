@@ -172,10 +172,10 @@ public class RxBus {
 
         Observable<T> observable = mSubject.ofType(onNext.getType());
         if (null != filter) {
-            observable.filter(filter);
+            observable = observable.filter(filter);
         }
         if (null != scheduler) {
-            observable.observeOn(scheduler);
+            observable = observable.observeOn(scheduler);
         }
         if (null != onError && null != onComplete) {
             return observable.subscribe(onNext, onError, onComplete);
@@ -188,30 +188,31 @@ public class RxBus {
     // ------------------- Sticky Subscribe -----------------------
 
     public <T> Disposable subscribeSticky(@NonNull final RxBusConsumer<T> onNext) {
-        synchronized (mStickyMap) {
-            return mSubject
-                    .ofType(onNext.getType())
-                    .mergeWith(new Observable<T>() {
-                        @Override
-                        protected void subscribeActual(Observer<? super T> observer) {
-                            observer.onNext(onNext.getType().cast(mStickyMap.get(onNext.getType())));
-                        }
-                    })
-                    .filter(new Predicate<T>() {
-                        @Override
-                        public boolean test(@NonNull T t) throws Exception {
-                            return null != mStickyMap.get(onNext.getType());
-                        }
-                    })
-                    .subscribe(onNext);
 
-        }
+        return doSubscribeSticky(null, onNext, null, null, null);
     }
 
     public <T> Disposable subscribeSticky(@NonNull final RxBusPredicate<T> filter,
                                           @NonNull final RxBusConsumer<T> onNext) {
+
+        return doSubscribeSticky(filter, onNext, null, null, null);
+    }
+
+    private <T> Disposable doSubscribeSticky(final RxBusPredicate<T> filter,
+                                             final RxBusConsumer<T> onNext,
+                                             final Scheduler scheduler,
+                                             final Consumer<Throwable> onError,
+                                             final Action onComplete) {
+
         synchronized (mStickyMap) {
-            return mSubject
+
+            if (null != filter && null != onNext && !ObjectHelper.equals(filter.getType(), onNext.getType())) {
+                throw new RxBusException(
+                        String.format("RxBusPredicate<%1$s>'s generic don`t match the RxBusConsumer<%2$s>.",
+                                filter.getType().getName(), onNext.getType().getName()));
+            }
+
+            Observable<T> observable = mSubject
                     .ofType(onNext.getType())
                     .mergeWith(new Observable<T>() {
                         @Override
@@ -224,11 +225,20 @@ public class RxBus {
                         public boolean test(@NonNull T t) throws Exception {
                             return null != mStickyMap.get(onNext.getType());
                         }
-                    })
-                    .filter(filter)
-                    .subscribe(onNext);
-
+                    });
+            if (null != filter) {
+                observable = observable.filter(filter);
+            }
+            if (null != scheduler) {
+                observable = observable.observeOn(scheduler);
+            }
+            if (null != onError && null != onComplete) {
+                return observable.subscribe(onNext, onError, onComplete);
+            } else {
+                return observable.subscribe(onNext);
+            }
         }
+
     }
 
     public boolean removeSticky(Object event) {
